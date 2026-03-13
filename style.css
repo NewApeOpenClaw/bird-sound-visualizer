@@ -1,0 +1,564 @@
+/* 基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #e6e6e6;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 头部样式 */
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.logo i {
+    font-size: 3rem;
+    color: #4cc9f0;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.logo h1 {
+    font-size: 2.8rem;
+    background: linear-gradient(45deg, #4cc9f0, #4361ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #b8b8b8;
+    font-weight: 300;
+}
+
+/* 按钮样式 */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #4361ee, #3a0ca3);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+/* 控制面板 */
+.control-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 992px) {
+    .control-panel {
+        grid-template-columns: 1fr;
+    }
+}
+
+.upload-section, .preset-sounds {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-section h2, .preset-sounds h2 {
+    color: #4cc9f0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.upload-area {
+    border: 2px dashed rgba(76, 201, 240, 0.3);
+    border-radius: 15px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover {
+    border-color: #4cc9f0;
+    background: rgba(76, 201, 240, 0.05);
+}
+
+.upload-area i {
+    font-size: 3rem;
+    color: #4cc9f0;
+    margin-bottom: 15px;
+}
+
+.upload-area p {
+    margin: 10px 0;
+    color: #b8b8b8;
+}
+
+.file-types {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.file-info {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.file-info p {
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 预设声音按钮 */
+.sound-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+@media (max-width: 768px) {
+    .sound-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.sound-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.sound-btn:hover {
+    background: rgba(76, 201, 240, 0.1);
+    transform: translateY(-3px);
+    border-color: #4cc9f0;
+}
+
+.sound-btn i {
+    font-size: 2rem;
+    color: #4cc9f0;
+}
+
+.sound-btn span {
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.sound-btn small {
+    font-size: 0.9rem;
+    color: #b8b8b8;
+}
+
+/* 可视化区域 */
+.visualization-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.viz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.viz-header h2 {
+    color: #4cc9f0;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.viz-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.volume-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 15px;
+    border-radius: 10px;
+}
+
+.volume-control i {
+    color: #4cc9f0;
+}
+
+.volume-control input[type="range"] {
+    width: 120px;
+    height: 6px;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #4cc9f0;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* 可视化画布容器 */
+.viz-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 25px;
+}
+
+.viz-canvas-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* 可视化模式选择器 */
+.viz-mode-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.mode-btn {
+    flex: 1;
+    min-width: 120px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.mode-btn:hover {
+    background: rgba(76, 201, 240, 0.1);
+}
+
+.mode-btn.active {
+    background: rgba(76, 201, 240, 0.2);
+    border-color: #4cc9f0;
+    box-shadow: 0 0 15px rgba(76, 201, 240, 0.3);
+}
+
+.mode-btn i {
+    font-size: 1.5rem;
+    color: #4cc9f0;
+}
+
+.mode-btn span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* 音频信息 */
+.audio-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 768px) {
+    .audio-info {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-card h3 {
+    color: #4cc9f0;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    color: #b8b8b8;
+}
+
+.info-value {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #4cc9f0;
+}
+
+/* 频率条 */
+.frequency-bars {
+    display: flex;
+    align-items: flex-end;
+    height: 100px;
+    gap: 4px;
+    margin-top: 15px;
+}
+
+.freq-bar {
+    flex: 1;
+    background: linear-gradient(to top, #4361ee, #4cc9f0);
+    border-radius: 3px 3px 0 0;
+    min-height: 5px;
+    transition: height 0.1s ease;
+}
+
+/* 鸟类信息 */
+.bird-info-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bird-info-section h2 {
+    color: #4cc9f0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bird-info-card {
+    display: flex;
+    gap: 30px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .bird-info-card {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+.bird-image {
+    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #4361ee, #3a0ca3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bird-image i {
+    font-size: 4rem;
+    color: white;
+}
+
+.bird-details {
+    flex: 1;
+}
+
+.bird-details h3 {
+    color: white;
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.bird-details p {
+    color: #b8b8b8;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.bird-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+@media (max-width: 480px) {
+    .bird-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.stat i {
+    color: #4cc9f0;
+    font-size: 1.2rem;
+}
+
+.stat span {
+    color: #b8b8b8;
+    font-size: 0.95rem;
+}
+
+/* 底部 */
+.footer {
+    text-align: center;
+    padding: 25px 0;
+    color: #b8b8b8;
+    font-size: 0.95rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-links {
+    margin-top: 15px;
+}
+
+.footer-links a {
+    color: #4cc9f0;
+    text-decoration: none;
+    margin: 0 10px;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+    .logo h1 {
+        font-size: 2rem;
+    }
+    
+    .sound-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .viz-controls {
+        justify-content: center;
+    }
+    
+    .viz-mode-selector {
+        justify-content: center;
+    }
+    
+    .mode-btn {
+        min-width: 100px;
+    }
+}

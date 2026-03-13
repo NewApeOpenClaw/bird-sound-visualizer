@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸟类声音可视化 - 鸟语可视化器</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-dove"></i>
+                <h1>鸟语可视化器</h1>
+            </div>
+            <p class="subtitle">将鸟类声音转化为视觉艺术</p>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="upload-section">
+                    <h2><i class="fas fa-upload"></i> 上传音频</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>拖放音频文件到这里，或点击选择文件</p>
+                        <p class="file-types">支持 MP3, WAV, OGG, M4A 格式</p>
+                        <input type="file" id="fileInput" accept="audio/*" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-file-audio"></i> 选择音频文件
+                        </button>
+                    </div>
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <p><i class="fas fa-music"></i> 已选择: <span id="fileName"></span></p>
+                        <p><i class="fas fa-clock"></i> 时长: <span id="fileDuration"></span></p>
+                        <p><i class="fas fa-hdd"></i> 大小: <span id="fileSize"></span></p>
+                    </div>
+                </div>
+
+                <div class="preset-sounds">
+                    <h2><i class="fas fa-bird"></i> 预设鸟类声音</h2>
+                    <div class="sound-grid">
+                        <button class="sound-btn" data-src="nightingale" onclick="loadPresetSound('nightingale')">
+                            <i class="fas fa-dove"></i>
+                            <span>夜莺</span>
+                            <small>婉转悠扬</small>
+                        </button>
+                        <button class="sound-btn" data-src="sparrow" onclick="loadPresetSound('sparrow')">
+                            <i class="fas fa-crow"></i>
+                            <span>麻雀</span>
+                            <small>清脆活泼</small>
+                        </button>
+                        <button class="sound-btn" data-src="eagle" onclick="loadPresetSound('eagle')">
+                            <i class="fas fa-eagle"></i>
+                            <span>老鹰</span>
+                            <small>雄壮有力</small>
+                        </button>
+                        <button class="sound-btn" data-src="owl" onclick="loadPresetSound('owl')">
+                            <i class="fas fa-owl"></i>
+                            <span>猫头鹰</span>
+                            <small>神秘低沉</small>
+                        </button>
+                        <button class="sound-btn" data-src="parrot" onclick="loadPresetSound('parrot')">
+                            <i class="fas fa-kiwi-bird"></i>
+                            <span>鹦鹉</span>
+                            <small>多变模仿</small>
+                        </button>
+                        <button class="sound-btn" data-src="robin" onclick="loadPresetSound('robin')">
+                            <i class="fas fa-feather-alt"></i>
+                            <span>知更鸟</span>
+                            <small>甜美悦耳</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可视化区域 -->
+            <div class="visualization-section">
+                <div class="viz-header">
+                    <h2><i class="fas fa-chart-line"></i> 声音可视化</h2>
+                    <div class="viz-controls">
+                        <button class="btn btn-secondary" id="playBtn" onclick="togglePlay()">
+                            <i class="fas fa-play"></i> 播放
+                        </button>
+                        <button class="btn btn-secondary" onclick="stopAudio()">
+                            <i class="fas fa-stop"></i> 停止
+                        </button>
+                        <div class="volume-control">
+                            <i class="fas fa-volume-up"></i>
+                            <input type="range" id="volumeSlider" min="0" max="100" value="80" oninput="changeVolume(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 可视化画布 -->
+                <div class="viz-canvas-container">
+                    <canvas id="waveformCanvas"></canvas>
+                    <canvas id="spectrumCanvas"></canvas>
+                    <canvas id="circularCanvas"></canvas>
+                    <canvas id="particleCanvas"></canvas>
+                </div>
+
+                <!-- 可视化模式选择 -->
+                <div class="viz-mode-selector">
+                    <button class="mode-btn active" data-mode="waveform" onclick="setVisualizationMode('waveform')">
+                        <i class="fas fa-wave-square"></i>
+                        <span>波形图</span>
+                    </button>
+                    <button class="mode-btn" data-mode="spectrum" onclick="setVisualizationMode('spectrum')">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>频谱图</span>
+                    </button>
+                    <button class="mode-btn" data-mode="circular" onclick="setVisualizationMode('circular')">
+                        <i class="fas fa-circle"></i>
+                        <span>环形图</span>
+                    </button>
+                    <button class="mode-btn" data-mode="particle" onclick="setVisualizationMode('particle')">
+                        <i class="fas fa-atom"></i>
+                        <span>粒子系统</span>
+                    </button>
+                    <button class="mode-btn" data-mode="all" onclick="setVisualizationMode('all')">
+                        <i class="fas fa-th-large"></i>
+                        <span>全部显示</span>
+                    </button>
+                </div>
+
+                <!-- 音频分析信息 -->
+                <div class="audio-info">
+                    <div class="info-card">
+                        <h3><i class="fas fa-tachometer-alt"></i> 音频分析</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">当前频率</span>
+                                <span class="info-value" id="currentFreq">0 Hz</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">音量</span>
+                                <span class="info-value" id="currentVolume">0 dB</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">音调</span>
+                                <span class="info-value" id="currentPitch">无</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">节奏</span>
+                                <span class="info-value" id="currentTempo">0 BPM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3><i class="fas fa-chart-pie"></i> 频率分布</h3>
+                        <div class="frequency-bars" id="frequencyBars">
+                            <!-- 频率条将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 鸟类信息 -->
+            <div class="bird-info-section">
+                <h2><i class="fas fa-info-circle"></i> 鸟类信息</h2>
+                <div class="bird-info-card" id="birdInfo">
+                    <div class="bird-image">
+                        <i class="fas fa-dove"></i>
+                    </div>
+                    <div class="bird-details">
+                        <h3 id="birdName">选择一种鸟类</h3>
+                        <p id="birdDescription">点击上面的鸟类按钮查看详细信息</p>
+                        <div class="bird-stats">
+                            <div class="stat">
+                                <i class="fas fa-ruler"></i>
+                                <span>大小: <span id="birdSize">-</span></span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-weight"></i>
+                                <span>重量: <span id="birdWeight">-</span></span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-globe-americas"></i>
+                                <span>分布: <span id="birdHabitat">-</span></span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-music"></i>
+                                <span>声音特点: <span id="birdSoundChar">-</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="footer">
+            <p>🎵 鸟类声音可视化器 | 使用 Web Audio API 和 Canvas 技术</p>
+            <p class="footer-links">
+                <a href="#"><i class="fas fa-code"></i> GitHub</a> | 
+                <a href="#"><i class="fas fa-book"></i> 文档</a> | 
+                <a href="#"><i class="fas fa-envelope"></i> 联系</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- 音频播放器（隐藏） -->
+    <audio id="audioPlayer" controls style="display: none;"></audio>
+
+    <!-- JavaScript -->
+    <script src="visualizer.js"></script>
+</body>
+</html>

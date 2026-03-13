@@ -1,0 +1,60 @@
+# 临时文件
+*.log
+*.tmp
+*.temp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 环境文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 依赖目录
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建输出
+dist/
+build/
+out/
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统文件
+*~
+*.lock
+
+# 音频缓存
+*.mp3.cache
+*.wav.cache
+
+# 项目特定
+bird-sound-visualizer.tar.gz
+demo_gif_info.txt
+demo_screenshots/
+
+# 生成的音频文件（可以重新生成）
+assets/sounds/test.wav
+
+# 部署脚本生成的临时文件
+package-for-*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
