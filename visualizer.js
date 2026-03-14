@@ -10,6 +10,7 @@ let currentVisualizationMode = 'waveform';
 let animationId;
 let frequencyData;
 let timeData;
+let audioSourceCreated = false;
 
 // 鸟类数据
 const birdData = {
@@ -144,25 +145,34 @@ function setupEventListeners() {
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     if (!file.type.match('audio.*')) {
         alert('请选择音频文件！');
         return;
     }
-    
+
     // 显示文件信息
     const fileInfo = document.getElementById('fileInfo');
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
-    
+    const fileDuration = document.getElementById('fileDuration');
+
     fileName.textContent = file.name;
     fileSize.textContent = formatFileSize(file.size);
     fileInfo.style.display = 'block';
-    
+
     // 创建音频URL
     const audioURL = URL.createObjectURL(file);
+
+    // 先加载音频获取时长
+    const tempAudio = new Audio();
+    tempAudio.src = audioURL;
+    tempAudio.onloadedmetadata = function() {
+        fileDuration.textContent = formatDuration(tempAudio.duration);
+    };
+
     loadAudio(audioURL);
-    
+
     // 清除预设鸟类信息
     updateBirdInfo(null);
 }
@@ -203,25 +213,29 @@ function loadPresetSound(birdType) {
 // 加载音频
 function loadAudio(url) {
     stopAudio();
-    
+
     const audioPlayer = document.getElementById('audioPlayer');
     audioPlayer.src = url;
-    
+
     // 重置播放按钮
     isPlaying = false;
     document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i> 播放';
-    
-    // 加载音频缓冲区用于分析
+
+    // 使用 AudioContext 解码音频数据用于可视化分析
     if (audioContext) {
+        // 对于 blob URL，需要使用 fetch
         fetch(url)
-            .then(response => response.arrayBuffer())
+            .then(response => {
+                if (!response.ok) throw new Error('网络响应失败');
+                return response.arrayBuffer();
+            })
             .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
             .then(buffer => {
                 audioBuffer = buffer;
-                console.log("音频缓冲区加载成功");
+                console.log("音频缓冲区加载成功，时长:", buffer.duration.toFixed(2), "秒");
             })
             .catch(error => {
-                console.error("音频加载失败:", error);
+                console.warn("音频解码失败，可视化可能不工作:", error.message);
             });
     }
 }
@@ -229,9 +243,17 @@ function loadAudio(url) {
 // 切换播放/暂停
 function togglePlay() {
     const audioPlayer = document.getElementById('audioPlayer');
-    
+
+    // 确保 AudioContext 处于运行状态（浏览器需要用户交互后才能播放音频）
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+
     if (audioPlayer.paused) {
-        audioPlayer.play();
+        audioPlayer.play().catch(error => {
+            console.error("播放失败:", error);
+            alert("无法播放音频，请确保使用了本地服务器运行！");
+        });
     } else {
         audioPlayer.pause();
     }
@@ -272,15 +294,26 @@ function setVisualizationMode(mode) {
 
 // 开始可视化
 function startVisualization() {
-    if (!audioContext || !audioSource) {
+    // 确保 AudioContext 处于运行状态
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+
+    if (!audioSource) {
         setupAudioSource();
     }
-    
+
+    // 断开之前的连接，防止重复
     if (audioSource) {
+        try {
+            audioSource.disconnect();
+        } catch (e) {}
+
+        // 重新连接: audioElement -> analyser -> destination
         audioSource.connect(analyser);
         analyser.connect(audioContext.destination);
     }
-    
+
     // 根据模式选择可视化函数
     const visualizeFunctions = {
         'waveform': visualizeWaveform,
@@ -328,200 +361,369 @@ function stopVisualization() {
 // 设置音频源
 function setupAudioSource() {
     if (!audioContext) return;
-    
+
     const audioPlayer = document.getElementById('audioPlayer');
-    
+
+    // 只创建一次 audioSource
+    if (!audioSourceCreated) {
+        audioSource = audioContext.createMediaElementSource(audioPlayer);
+        audioSourceCreated = true;
+    }
+
+    // 断开之前的连接，重新连接
     if (audioSource) {
         audioSource.disconnect();
     }
-    
-    audioSource = audioContext.createMediaElementSource(audioPlayer);
 }
 
-// 可视化函数
+// 可视化函数 - 增强版
 function visualizeWaveform() {
     const canvas = document.getElementById('waveformCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    
+
     const width = canvas.width;
     const height = canvas.height;
-    
-    ctx.clearRect(0, 0, width, height);
-    
-    // 绘制背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+    const centerY = height / 2;
+
+    // 拖尾效果
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
     ctx.fillRect(0, 0, width, height);
-    
-    // 绘制波形
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#4cc9f0';
+
+    // 计算平均音量用于动态效果
+    let avg = 0;
+    for (let i = 0; i < timeData.length; i++) {
+        avg += Math.abs(timeData[i] - 128);
+    }
+    avg = avg / timeData.length;
+
+    // 外发光效果
+    ctx.shadowBlur = 20 + avg * 0.5;
+    ctx.shadowColor = '#4cc9f0';
+
+    // 绘制主波形
     ctx.beginPath();
-    
     const sliceWidth = width / timeData.length;
     let x = 0;
-    
+
     for (let i = 0; i < timeData.length; i++) {
         const v = timeData[i] / 128.0;
         const y = v * height / 2;
-        
+
         if (i === 0) {
             ctx.moveTo(x, y);
         } else {
             ctx.lineTo(x, y);
         }
-        
         x += sliceWidth;
     }
-    
-    ctx.stroke();
-    
-    // 添加渐变效果
+
+    // 渐变色
     const gradient = ctx.createLinearGradient(0, 0, width, 0);
-    gradient.addColorStop(0, 'rgba(76, 201, 240, 0.8)');
-    gradient.addColorStop(0.5, 'rgba(67, 97, 238, 0.9)');
-    gradient.addColorStop(1, 'rgba(76, 201, 240, 0.8)');
-    
+    gradient.addColorStop(0, '#ff006e');
+    gradient.addColorStop(0.25, '#fb5607');
+    gradient.addColorStop(0.5, '#ffbe0b');
+    gradient.addColorStop(0.75, '#06d6a0');
+    gradient.addColorStop(1, '#3a86ff');
+
     ctx.strokeStyle = gradient;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // 绘制镜像波形（倒影效果）
+    ctx.beginPath();
+    x = 0;
+    ctx.shadowBlur = 0; // 倒影不发光
+
+    for (let i = 0; i < timeData.length; i++) {
+        const v = timeData[i] / 128.0;
+        const y = height - (v * height / 2);
+
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+        x += sliceWidth;
+    }
+
+    const gradient2 = ctx.createLinearGradient(0, height, width, height);
+    gradient2.addColorStop(0, 'rgba(255, 0, 110, 0.3)');
+    gradient2.addColorStop(0.5, 'rgba(58, 134, 255, 0.3)');
+    gradient2.addColorStop(1, 'rgba(6, 214, 160, 0.3)');
+
+    ctx.strokeStyle = gradient2;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 中心线
+    ctx.beginPath();
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(width, centerY);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
     ctx.stroke();
 }
 
 function visualizeSpectrum() {
     const canvas = document.getElementById('spectrumCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    
+
     const width = canvas.width;
     const height = canvas.height;
-    
-    ctx.clearRect(0, 0, width, height);
-    
-    // 绘制背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+
+    // 拖尾效果
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.fillRect(0, 0, width, height);
-    
+
     // 绘制频谱条
-    const barWidth = (width / frequencyData.length) * 2.5;
-    let barHeight;
-    let x = 0;
-    
-    for (let i = 0; i < frequencyData.length; i++) {
-        barHeight = frequencyData[i];
-        
-        // 创建渐变颜色
+    const barCount = 48;
+    const barWidth = width / barCount - 4;
+    let x = (width - (barWidth + 4) * barCount) / 2;
+
+    // 启用发光
+    ctx.shadowBlur = 15;
+
+    for (let i = 0; i < barCount; i++) {
+        const dataIndex = Math.floor(i / barCount * frequencyData.length);
+        const magnitude = frequencyData[dataIndex];
+        // 添加平滑处理
+        const barHeight = magnitude * (height * 0.85 / 255);
+
+        // 动态颜色 - 基于频率位置
+        const hue = (i / barCount) * 60 + 280; // 紫色到粉色范围
+
+        // 主条形
+        ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
+
         const gradient = ctx.createLinearGradient(0, height - barHeight, 0, height);
-        const hue = i / frequencyData.length * 360;
-        gradient.addColorStop(0, `hsla(${hue}, 100%, 65%, 0.8)`);
-        gradient.addColorStop(1, `hsla(${hue}, 100%, 45%, 0.4)`);
-        
+        gradient.addColorStop(0, `hsla(${hue}, 100%, 70%, 1)`);
+        gradient.addColorStop(0.5, `hsla(${hue}, 100%, 55%, 0.9)`);
+        gradient.addColorStop(1, `hsla(${hue}, 100%, 40%, 0.7)`);
+
         ctx.fillStyle = gradient;
         ctx.fillRect(x, height - barHeight, barWidth, barHeight);
-        
-        x += barWidth + 1;
+
+        // 倒影效果
+        const reflectGradient = ctx.createLinearGradient(0, height, 0, height + barHeight * 0.3);
+        reflectGradient.addColorStop(0, `hsla(${hue}, 100%, 50%, 0.3)`);
+        reflectGradient.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+
+        ctx.fillStyle = reflectGradient;
+        ctx.fillRect(x, height, barWidth, barHeight * 0.3);
+
+        // 顶部亮点
+        if (barHeight > 10) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fillRect(x, height - barHeight, barWidth, 3);
+        }
+
+        x += barWidth + 4;
     }
+
+    ctx.shadowBlur = 0;
 }
 
 function visualizeCircular() {
     const canvas = document.getElementById('circularCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    
+
     const width = canvas.width;
     const height = canvas.height;
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = Math.min(width, height) * 0.3;
-    
-    ctx.clearRect(0, 0, width, height);
-    
-    // 绘制圆形频谱
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(76, 201, 240, 0.2)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // 绘制频谱线
-    const barCount = 128;
+    const radius = Math.min(width, height) * 0.22;
+
+    // 拖尾效果
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.fillRect(0, 0, width, height);
+
+    // 旋转角度（随时间变化）
+    const rotation = Date.now() * 0.0003;
+
+    // 外圈光晕
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = '#ff006e';
+
+    // 绘制多层圆形背景
+    for (let r = radius; r > 0; r -= radius / 4) {
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(76, 201, 240, ${0.05 + (1 - r / radius) * 0.1})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+
+    // 绘制频谱线 - 外圈
+    const barCount = 180;
     const angleStep = (Math.PI * 2) / barCount;
-    
+
     for (let i = 0; i < barCount; i++) {
         const dataIndex = Math.floor(i / barCount * frequencyData.length);
         const magnitude = frequencyData[dataIndex];
-        const barLength = radius + (magnitude / 255) * radius * 0.5;
-        
-        const angle = i * angleStep;
+        const barLength = radius * 0.4 + (magnitude / 255) * radius * 0.8;
+
+        const angle = i * angleStep + rotation;
         const x1 = centerX + Math.cos(angle) * radius;
         const y1 = centerY + Math.sin(angle) * radius;
-        const x2 = centerX + Math.cos(angle) * barLength;
-        const y2 = centerY + Math.sin(angle) * barLength;
-        
-        // 创建渐变
-        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        const x2 = centerX + Math.cos(angle) * (radius + barLength);
+        const y2 = centerY + Math.sin(angle) * (radius + barLength);
+
+        // 动态颜色
         const hue = (i / barCount) * 360;
-        gradient.addColorStop(0, `hsla(${hue}, 100%, 65%, 0.8)`);
-        gradient.addColorStop(1, `hsla(${hue}, 100%, 45%, 0.4)`);
-        
+
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
+
+        const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+        gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 0.9)`);
+        gradient.addColorStop(1, `hsla(${(hue + 60) % 360}, 100%, 70%, 0.5)`);
+
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2 + (magnitude / 255) * 3;
+        ctx.lineCap = 'round';
         ctx.stroke();
+
+        // 端点亮点
+        if (magnitude > 100) {
+            ctx.beginPath();
+            ctx.arc(x2, y2, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${hue}, 100%, 80%, 0.9)`;
+            ctx.fill();
+        }
     }
+
+    // 中心发光球体
+    const avgMagnitude = frequencyData.slice(0, 50).reduce((a, b) => a + b, 0) / 50;
+    const centerRadius = 20 + avgMagnitude * 0.15;
+
+    const centerGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, centerRadius);
+    centerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    centerGradient.addColorStop(0.3, 'rgba(255, 0, 110, 0.8)');
+    centerGradient.addColorStop(0.7, 'rgba(251, 86, 7, 0.4)');
+    centerGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
+    ctx.fillStyle = centerGradient;
+    ctx.fill();
 }
 
 function visualizeParticle() {
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    
+
     const width = canvas.width;
     const height = canvas.height;
-    
-    // 使用半透明填充创建拖尾效果
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+
+    // 拖尾效果
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.fillRect(0, 0, width, height);
-    
-    // 绘制粒子
-    const particleCount = 100;
+
+    const particleCount = 150;
     const centerX = width / 2;
     const centerY = height / 2;
-    
+    const time = Date.now() * 0.001;
+
+    // 计算平均音量
+    let avgMag = 0;
+    for (let i = 0; i < frequencyData.length; i += 10) {
+        avgMag += frequencyData[i];
+    }
+    avgMag = avgMag / (frequencyData.length / 10);
+
+    // 存储粒子位置用于连线
+    const particles = [];
+
+    // 启用发光
+    ctx.shadowBlur = 10;
+
     for (let i = 0; i < particleCount; i++) {
         const dataIndex = Math.floor(i / particleCount * frequencyData.length);
         const magnitude = frequencyData[dataIndex] / 255;
-        
-        const angle = (i / particleCount) * Math.PI * 2;
-        const distance = 100 + magnitude * 150;
-        const size = 2 + magnitude * 8;
-        
-        const x = centerX + Math.cos(angle + Date.now() * 0.001) * distance;
-        const y = centerY + Math.sin(angle + Date.now() * 0.001) * distance;
-        
-        // 粒子颜色基于频率
-        const hue = (dataIndex / frequencyData.length) * 360;
-        
+
+        // 多层轨道运动
+        const layer = i % 3;
+        const baseSpeed = 0.0005 + layer * 0.0003;
+        const angle = (i / particleCount) * Math.PI * 6 + time * (1 + layer * 0.5);
+
+        const baseRadius = 50 + layer * 40;
+        const distance = baseRadius + magnitude * 180;
+        const size = 1 + magnitude * 6 + layer * 2;
+
+        const x = centerX + Math.cos(angle) * distance;
+        const y = centerY + Math.sin(angle) * distance;
+
+        particles.push({ x, y, magnitude });
+
+        // 粒子颜色 - 彩虹渐变
+        const hue = (dataIndex / frequencyData.length * 60 + time * 30 + 280) % 360;
+
+        // 外发光
+        ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
+
         // 绘制粒子
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.3 + magnitude * 0.7})`;
+        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.5 + magnitude * 0.5})`;
         ctx.fill();
-        
-        // 添加光晕效果
+
+        // 光晕
         ctx.beginPath();
-        ctx.arc(x, y, size * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${0.1 + magnitude * 0.2})`;
+        ctx.arc(x, y, size * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${0.1 + magnitude * 0.15})`;
         ctx.fill();
     }
+
+    ctx.shadowBlur = 0;
+
+    // 粒子之间连线 - 当距离近时
+    for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 60) {
+                const avgMag2 = (particles[i].magnitude + particles[j].magnitude) / 2;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.strokeStyle = `rgba(76, 201, 240, ${(1 - dist / 60) * avgMag2 * 0.4})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+    }
+
+    // 中心能量球
+    const energyRadius = 30 + avgMag * 0.3;
+    const energyGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, energyRadius);
+    energyGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+    energyGradient.addColorStop(0.2, 'rgba(255, 0, 110, 0.8)');
+    energyGradient.addColorStop(0.5, 'rgba(251, 86, 7, 0.4)');
+    energyGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, energyRadius, 0, Math.PI * 2);
+    ctx.fillStyle = energyGradient;
+    ctx.fill();
 }
 
 function visualizeAll() {
@@ -636,8 +838,8 @@ function updateBirdInfo(birdType) {
     const iconMap = {
         nightingale: "fas fa-dove",
         sparrow: "fas fa-crow",
-        eagle: "fas fa-eagle",
-        owl: "fas fa-owl",
+        eagle: "fas fa-feather",
+        owl: "fas fa-moon",
         parrot: "fas fa-kiwi-bird",
         robin: "fas fa-feather-alt"
     };
@@ -648,12 +850,20 @@ function updateBirdInfo(birdType) {
 // 工具函数
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// 格式化音频时长
+function formatDuration(seconds) {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 // 窗口大小调整时重新设置画布
