@@ -2,10 +2,8 @@
 
 一个现代化的网页应用，将鸟类声音转化为动态视觉艺术。使用Web Audio API和Canvas技术实现实时音频可视化。
 
-<video width="600" controls muted loop>
-  <source src="https://github.com/user-attachments/assets/ed566099-4b54-4247-9a4b-0a9f959a3408" type="video/mp4">
-  你的浏览器不支持 HTML5 视频播放
-</video>
+showcase案例：
+https://github.com/user-attachments/assets/ed566099-4b54-4247-9a4b-0a9f959a3408
 
 ## ✨ 功能特点
 
