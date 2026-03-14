@@ -1,6 +1,9 @@
 # 🐦 鸟类声音可视化器
 
 一个现代化的网页应用，将鸟类声音转化为动态视觉艺术。使用Web Audio API和Canvas技术实现实时音频可视化。
+<video width="600" controls muted loop>
+  <source src="https://github.com/user-attachments/assets/a066185f-c91f-49ca-abc4-0a92c1a91194" type="video/mp4">
+</video>
 
 ## ✨ 功能特点
 
